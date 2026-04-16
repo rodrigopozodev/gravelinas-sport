@@ -1,0 +1,9 @@
+{
+  "members": [
+    { "slot": 1, "gameName": "GRV Daps", "tagLine": "ESP", "platform": "euw1", "label": "Top" },
+    { "slot": 2, "gameName": "Degryhlol", "tagLine": "EUW", "platform": "euw1", "label": "Jungle" },
+    { "slot": 3, "gameName": "GRV Castillo", "tagLine": "3778", "platform": "euw1", "label": "Mid" },
+    { "slot": 4, "label": "ADC", "pending": true },
+    { "slot": 5, "gameName": "everyday same", "tagLine": "KR01", "platform": "euw1", "label": "Support" }
+  ]
+}
