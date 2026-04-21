@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Gravelinas",
   description: "Equipo LoL — datos Riot con caché SQLite",
+  icons: {
+    icon: [{ url: "/icon.png" }],
+    apple: [{ url: "/icon.png" }],
+  },
 };
 
 export default function RootLayout({

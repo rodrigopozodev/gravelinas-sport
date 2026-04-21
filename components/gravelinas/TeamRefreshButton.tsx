@@ -5,7 +5,11 @@ import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-export function TeamRefreshButton() {
+export function TeamRefreshButton({
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
@@ -47,14 +51,17 @@ export function TeamRefreshButton() {
         onClick={onRefresh}
         disabled={loading}
         className={cn(
-          "inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium",
+          "inline-flex items-center justify-center rounded-lg border border-[var(--border)] font-medium",
+          compact ? "min-h-10 px-3 py-2 text-xs" : "min-h-11 px-4 py-2 text-sm",
           "bg-[var(--bg-elevated)] text-[var(--text-primary)] transition-colors",
           "hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]",
           "disabled:cursor-not-allowed disabled:opacity-60",
           "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
         )}
+        aria-label={loading ? "Actualizando…" : "Actualizar rangos (SoloQ)"}
+        title="Actualizar rangos (SoloQ)"
       >
-        {loading ? "Actualizando…" : "Actualizar rangos (SoloQ)"}
+        {compact ? (loading ? "Sync…" : "Sync") : loading ? "Actualizando…" : "Actualizar rangos (SoloQ)"}
       </button>
       {feedback && (
         <p

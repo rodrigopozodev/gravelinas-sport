@@ -2,6 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import type { TeamMemberResult, TeamSnapshot } from "@/lib/gravelinas/teamTypes";
+import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 
 import { HomeLenis } from "./HomeLenis";
 import { TeamRefreshButton } from "./TeamRefreshButton";
@@ -37,44 +39,85 @@ function scrollToSection(id: string) {
   else el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function scrollToRoster() {
-  scrollToSection("roster");
-}
-
 const SIDEBAR_LINKS = [
   { id: "inicio", label: "Inicio" },
   { id: "roster", label: "Roster" },
 ] as const;
 
-function SiteSidebarNav() {
+type SectionId = (typeof SIDEBAR_LINKS)[number]["id"];
+
+function SiteSidebarNav({ activeId }: { activeId: SectionId }) {
   return (
     <aside
       className={cn(
         "pointer-events-none fixed left-0 right-0 top-0 z-40 flex flex-row items-start justify-between px-4 pt-4 sm:px-6 lg:px-8",
-        "md:left-6 md:right-auto md:top-0 md:bottom-0 md:flex-col md:justify-between md:py-16 lg:left-8",
+        "md:left-8 md:right-auto md:top-1/2 md:bottom-auto md:-translate-y-1/2 md:flex-col md:justify-center md:p-0",
         "md:w-max"
       )}
     >
-      <nav
-        aria-label="Secciones"
-        className="pointer-events-auto flex w-full flex-row justify-between gap-6 md:h-full md:min-h-0 md:flex-col md:justify-between md:gap-0"
+      <div
+        className={cn(
+          "pointer-events-auto w-full",
+          "rounded-2xl border border-white/10 bg-[color-mix(in_srgb,var(--bg-elevated)_78%,transparent)] shadow-[0_0_0_1px_rgba(255,255,255,0.02)_inset] backdrop-blur",
+          "md:w-[6.5rem]"
+        )}
       >
-        {SIDEBAR_LINKS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => scrollToSection(id)}
-            className={cn(
-              "rounded-md px-2 py-2 text-left text-sm font-medium text-[var(--text-secondary)] transition-colors",
-              "hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
-              "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+        <nav
+          aria-label="Secciones"
+          className="flex w-full flex-row items-center justify-between gap-2 p-2 md:flex-col md:items-stretch"
+        >
+          <div className="flex w-full flex-row gap-1.5 md:flex-col">
+            {SIDEBAR_LINKS.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => scrollToSection(id)}
+                className={cn(
+                  "gr-nav-link relative rounded-xl px-3 py-2 text-center text-sm font-semibold transition-colors",
+                  id === activeId
+                    ? "bg-white/10 text-[var(--text-primary)]"
+                    : "text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]",
+                  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sync button se muestra en roster bajo ADC */}
+        </nav>
+      </div>
     </aside>
+  );
+}
+
+function FlippingLogo() {
+  return (
+    <div className="gr-flip-wrap mx-auto">
+      <div className={cn("gr-flip-inner gr-coin-anim")}>
+        <div className="gr-flip-face">
+          <Image
+            src="/brand/gravelinas-logo.png"
+            alt="Gravelinas"
+            width={420}
+            height={420}
+            className="h-auto w-full select-none"
+            priority
+          />
+        </div>
+        <div className="gr-flip-face gr-flip-back">
+          <Image
+            src="/brand/gravelinas-logo-tema-oscuro.png"
+            alt="Gravelinas"
+            width={420}
+            height={420}
+            className="h-auto w-full select-none"
+            priority
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -99,9 +142,9 @@ function RosterCard({ m }: { m: TeamMemberResult }) {
   return (
     <article
       className={cn(
-        "flex min-h-0 min-w-0 flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 pb-4 pt-4",
-        hasRankFrame ? "h-full overflow-visible" : "overflow-hidden",
-        "transition-transform duration-300 hover:-translate-y-0.5"
+        "flex min-h-0 min-w-0 flex-col gap-2 rounded-xl px-4 pb-4 pt-4",
+        "bg-transparent overflow-x-hidden overflow-y-visible",
+        "origin-center scale-[1.3]"
       )}
     >
       <div
@@ -131,12 +174,12 @@ function RosterCard({ m }: { m: TeamMemberResult }) {
           )
         ) : null}
         <div className={cn("min-w-0", !hasRankFrame && "flex-1", hasRankFrame && "text-center")}>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-primary)]">
+          <p className="text-[14px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-primary)]">
             {m.label ?? `Slot ${m.slot}`}
           </p>
           <p
             className={cn(
-              "font-mono text-xs text-[var(--text-secondary)]",
+              "font-mono text-[14px] text-[var(--text-secondary)]",
               hasRankFrame ? "mt-0.5 break-all sm:break-words" : "mt-1"
             )}
           >
@@ -146,7 +189,7 @@ function RosterCard({ m }: { m: TeamMemberResult }) {
             <p
               className={cn(
                 "font-semibold text-[var(--text-primary)]",
-                hasRankFrame ? "mt-0.5 px-1 text-base" : "mt-1 truncate text-lg"
+                hasRankFrame ? "mt-0.5 px-1 text-[20px]" : "mt-1 truncate text-[22px]"
               )}
               title={m.summonerName}
             >
@@ -156,125 +199,79 @@ function RosterCard({ m }: { m: TeamMemberResult }) {
         </div>
       </div>
 
-      {m.rowError && (
-        <p className="shrink-0 text-left text-sm text-red-400/90" role="alert">
-          {m.rowError}
-        </p>
-      )}
+      <div className="pt-2">
 
-      <div
-        className={cn(
-          "border-t border-[var(--border)]",
-          hasRankFrame ? "flex min-h-0 flex-1 flex-col pt-1.5" : "pt-2"
-        )}
-      >
-        <p
-          className={cn(
-            "shrink-0 text-[11px] uppercase tracking-wider text-[var(--text-muted)]",
-            hasRankFrame && "text-center"
-          )}
-        >
-          SoloQ
-        </p>
-        <div
-          className={cn(
-            "flex w-full min-w-0 flex-col",
-            hasRankFrame ? "mt-0.5 min-h-0 flex-1" : "mt-1.5 gap-2"
-          )}
-        >
-          {m.soloTierEmblemUrl ? (
-            <div className="flex min-h-0 flex-1 flex-col">
-              {/* Marco ocupa el espacio central; stats en un solo div pegado al borde inferior de la tarjeta */}
-              <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-visible">
-                <div className="relative mx-auto h-28 w-full max-w-[13.5rem] shrink-0 overflow-visible">
-                  <div className="pointer-events-none absolute left-1/2 top-1/2 isolate z-10 w-[min(20.25rem,calc(100vw-2.5rem))] max-w-none -translate-x-1/2 -translate-y-1/2">
-                    <div className="relative w-full">
-                      <div
-                        className="pointer-events-none absolute left-1/2 top-[60%] z-0 aspect-square w-[38%] min-w-[5.25rem] max-w-[9.375rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border border-black/25 bg-[var(--bg-card)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] ring-1 ring-white/5"
-                        aria-hidden
-                      >
-                        {m.profileIconUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element -- CDN Data Dragon
-                          <img
-                            src={m.profileIconUrl}
-                            alt=""
-                            width={126}
-                            height={126}
-                            className="size-full object-cover"
-                            loading="lazy"
-                            decoding="async"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <div className="size-full bg-[var(--bg-card)]" />
-                        )}
-                      </div>
-                      {/* eslint-disable-next-line @next/next/no-img-element -- Community Dragon */}
-                      <img
-                        src={m.soloTierEmblemUrl}
-                        alt=""
-                        role="presentation"
-                        className="relative z-[999] block h-auto w-full object-contain object-center select-none"
-                        loading="lazy"
-                        decoding="async"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-auto w-full shrink-0">
-                {/* margin-top % (ancho contenedor) + mt-auto = texto abajo con aire respecto al marco */}
+        {m.soloTierEmblemUrl ? (
+          <div className="mt-2">
+            <div className="mx-auto flex w-full items-center justify-center">
+              <div className="relative h-48 w-48 overflow-visible">
+                {/* eslint-disable-next-line @next/next/no-img-element -- Community Dragon */}
+                <img
+                  src={m.soloTierEmblemUrl}
+                  alt=""
+                  role="presentation"
+                  className="absolute inset-0 -translate-y-[40px] h-full w-full origin-center scale-[2] object-contain object-center select-none"
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                />
                 <div
-                  className="mt-[min(22%,4.675rem)] space-y-0.5 text-center"
-                  aria-label="Rango SoloQ"
+                  className="absolute left-1/2 top-[calc(50%-2px)] z-10 size-[6.5rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border border-white/10 bg-[var(--bg-card)] shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset] p-0"
+                  aria-hidden
                 >
-                  <p className="text-balance break-words text-sm font-semibold leading-snug text-[var(--text-primary)] sm:text-base">
-                    {solo ? formatRank(solo.tier, solo.rank, solo.leaguePoints) : "Unranked"}
-                  </p>
-                  {solo && (
-                    <>
-                      <p className="text-xs text-[var(--text-secondary)] sm:text-sm">
-                        {solo.wins}W / {solo.losses}L
-                      </p>
-                      {soloWinPct != null ? (
-                        <p className="mt-1 text-[14.3px] leading-tight text-[var(--text-muted)] sm:text-[15px]">
-                          {soloWinPct}
-                        </p>
-                      ) : null}
-                    </>
+                  {m.profileIconUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- CDN Data Dragon
+                    <img
+                      src={m.profileIconUrl}
+                      alt=""
+                      width={96}
+                      height={96}
+                      className="size-full rounded-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="size-full bg-[var(--bg-card)]" />
                   )}
                 </div>
               </div>
             </div>
-          ) : (
-            <>
-              <p className="text-sm text-[var(--text-muted)]">Sin emblema de liga</p>
-              <div
-                className={cn(
-                  "w-full min-w-0",
-                  hasRankFrame ? "text-center" : "text-center sm:text-left"
-                )}
-              >
-                <p className="break-words text-sm font-semibold leading-snug text-[var(--text-primary)] sm:text-base">
-                  {solo ? formatRank(solo.tier, solo.rank, solo.leaguePoints) : "Unranked"}
+
+            <div className="mt-3 space-y-0.5 text-center" aria-label="Rango SoloQ">
+              <p className="text-balance break-words text-base font-semibold leading-snug text-[var(--text-primary)]">
+                {solo ? formatRank(solo.tier, solo.rank, solo.leaguePoints) : "Unranked"}
+              </p>
+              {solo && (
+                <>
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    {solo.wins}W / {solo.losses}L
+                  </p>
+                  {soloWinPct != null ? (
+                    <p className="mt-1 text-base leading-tight text-[var(--text-muted)]">{soloWinPct}</p>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-1.5">
+            <p className="text-base text-[var(--text-muted)]">Sin emblema de liga</p>
+            <p className="mt-1 break-words text-base font-semibold leading-snug text-[var(--text-primary)]">
+              {solo ? formatRank(solo.tier, solo.rank, solo.leaguePoints) : "Unranked"}
+            </p>
+            {solo && (
+              <>
+                <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
+                  {solo.wins}W / {solo.losses}L
                 </p>
-                {solo && (
-                  <>
-                    <p className="mt-0.5 text-xs text-[var(--text-secondary)] sm:text-sm">
-                      {solo.wins}W / {solo.losses}L
-                    </p>
-                    {soloWinPct != null ? (
-                      <p className="mt-1 text-[14.3px] leading-tight text-[var(--text-muted)] sm:text-[15px]">
-                        {soloWinPct}
-                      </p>
-                    ) : null}
-                  </>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+                {soloWinPct != null ? (
+                  <p className="mt-1 text-base leading-tight text-[var(--text-muted)]">{soloWinPct}</p>
+                ) : null}
+              </>
+            )}
+          </div>
+        )}
       </div>
     </article>
   );
@@ -285,36 +282,90 @@ export function HomeView({ data }: { data: TeamSnapshot }) {
   const members = data.members ?? [];
   const globalErr = !ok ? data.error : undefined;
   const authErr = !ok && "errorCode" in data && data.errorCode === "RIOT_AUTH_FAILED";
+  const [activeId, setActiveId] = useState<SectionId>("inicio");
+
+  const sectionIds = useMemo(() => SIDEBAR_LINKS.map((l) => l.id), []);
+
+  useEffect(() => {
+    const els = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((x): x is HTMLElement => Boolean(x));
+    if (els.length === 0) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => (b.intersectionRatio ?? 0) - (a.intersectionRatio ?? 0))[0];
+        if (!visible?.target?.id) return;
+        const id = visible.target.id as SectionId;
+        if (sectionIds.includes(id)) setActiveId(id);
+      },
+      { root: null, threshold: [0.3, 0.45, 0.6, 0.75] }
+    );
+
+    for (const el of els) obs.observe(el);
+    return () => obs.disconnect();
+  }, [sectionIds]);
 
   return (
     <>
       <HomeLenis />
-      <div className="bg-[var(--bg-base)] text-[var(--text-primary)]">
-        <SiteSidebarNav />
+      <div className="bg-[var(--bg-base)] text-[var(--text-primary)] overflow-x-hidden">
+        <SiteSidebarNav activeId={activeId} />
         <main>
           <section
             id="inicio"
-            className="relative flex min-h-svh flex-col justify-center px-4 pb-16 pt-16 sm:px-6 lg:px-8"
+            className={cn(
+              "relative flex min-h-svh flex-col justify-center overflow-hidden px-4 pb-16 pt-16 sm:px-6 lg:px-8",
+              "gr-hero-orbit-bg"
+            )}
           >
-            <div className="mx-auto w-full max-w-4xl">
-              <p className="mb-3 text-sm font-medium uppercase tracking-[0.35em] text-[var(--accent-primary)]">
-                League of Legends
+            <div className="pointer-events-none absolute inset-0 -z-10 gr-hero-orbits" aria-hidden>
+              <div className="gr-orbit-2" />
+              <div className="gr-pulse" />
+            </div>
+            <div className="mx-auto w-full max-w-3xl text-center">
+              <FlippingLogo />
+
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)] sm:text-xl">
+                ¿Te gusta el competitivo de verdad?{" "}
+                <span className="font-semibold text-[var(--text-primary)]">Síguenos</span> y{" "}
+                <span className="font-semibold text-[var(--text-primary)]">únete</span>: buscamos gente con hambre
+                de mejorar, dentro y fuera del game.
               </p>
-              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-                <span className="bg-gradient-to-br from-[var(--text-primary)] via-[var(--text-primary)] to-[var(--accent-primary)] bg-clip-text text-transparent">
-                  Gravelinas
-                </span>
-              </h1>
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--text-secondary)] sm:text-xl">
-                Equipo competitivo — datos Riot guardados en SQLite. Perfil (nombre, icono, PUUID) se
-                sincroniza cada 3 días; el botón actualiza solo rango y victorias en SoloQ.
+
+              <p className="mx-auto mt-5 max-w-2xl text-balance text-[15px] leading-relaxed text-[var(--text-muted)] sm:text-[17.5px]">
+                “Disciplina. Comunicación. Constancia. El resultado llega.”
+              </p>
+
+              <p className="mx-auto mt-7 max-w-2xl text-[15px] leading-relaxed text-[var(--text-muted)] sm:text-[17.5px]">
+                Participamos en{" "}
+                <a
+                  href="https://circuitotormenta.riotgames.com/landing/hextech-series-lol"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-[var(--text-primary)] underline decoration-white/20 underline-offset-4 hover:decoration-white/50"
+                >
+                  Hextech Series
+                </a>{" "}
+                y{" "}
+                <a
+                  href="https://circuitotormenta.riotgames.com/competition/tournament/esm-2026-or-split-1-or-torneo-4-presencial"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-[var(--text-primary)] underline decoration-white/20 underline-offset-4 hover:decoration-white/50"
+                >
+                  Madrid in Game (presencial)
+                </a>
+                .
               </p>
 
               {globalErr && (
                 <div
                   role="alert"
                   className={cn(
-                    "mt-8 rounded-lg border px-4 py-3 text-sm",
+                    "mx-auto mt-10 max-w-2xl rounded-xl border px-4 py-3 text-sm shadow-[0_0_0_1px_rgba(255,255,255,0.02)_inset]",
                     authErr
                       ? "border-red-500/50 bg-red-500/10 text-red-100"
                       : "border-amber-500/40 bg-amber-500/10 text-amber-100"
@@ -323,49 +374,15 @@ export function HomeView({ data }: { data: TeamSnapshot }) {
                   {globalErr}
                 </div>
               )}
-
-              <div className="mt-12 flex flex-wrap items-center gap-4">
-                <button
-                  type="button"
-                  onClick={scrollToRoster}
-                  className={cn(
-                    "inline-flex min-h-12 items-center justify-center rounded-lg px-6 text-sm font-semibold",
-                    "bg-[var(--accent-primary)] text-[var(--bg-base)]",
-                    "hover:bg-[color-mix(in_srgb,var(--accent-primary)_88%,white)]",
-                    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
-                  )}
-                >
-                  Ver roster
-                </button>
-                <span className="text-sm text-[var(--text-muted)]">Scroll suavizado · Lenis</span>
-              </div>
-            </div>
-
-            <div
-              className="pointer-events-none absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-[var(--text-muted)]"
-              aria-hidden
-            >
-              <span className="text-xs uppercase tracking-widest">Explorar</span>
-              <span className="block h-8 w-px bg-gradient-to-b from-[var(--accent-primary)] to-transparent" />
             </div>
           </section>
 
           <section
             id="roster"
-            className="min-h-svh scroll-mt-0 border-t border-[var(--border)] px-4 py-20 sm:px-6 lg:px-8"
+            className="flex min-h-svh flex-col justify-center overflow-x-hidden scroll-mt-0 px-4 py-10 sm:px-6 lg:px-8"
           >
-            <div className="mx-auto max-w-6xl">
-              <div className="mb-8 flex flex-col gap-6 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
-                <div className="max-w-2xl">
-                  <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Roster</h2>
-                  <p className="mt-3 text-[var(--text-secondary)]">
-                    Cinco jugadores. Actualización manual: solo victorias, derrotas y rango SoloQ.
-                  </p>
-                </div>
-                <TeamRefreshButton />
-              </div>
-
-              <div className="grid min-w-0 grid-cols-1 items-stretch gap-6 overflow-visible md:grid-cols-6">
+            <div className="mx-auto max-w-6xl min-w-0">
+              <div className="grid min-w-0 grid-cols-1 items-stretch gap-20 overflow-visible md:grid-cols-6">
                 {members.map((m) => (
                   <div
                     key={m.slot}
@@ -376,6 +393,11 @@ export function HomeView({ data }: { data: TeamSnapshot }) {
                     )}
                   >
                     <RosterCard m={m} />
+                    {m.pending && (m.label ?? "").toLowerCase() === "adc" ? (
+                      <div className="mt-4 flex justify-center">
+                        <TeamRefreshButton />
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
