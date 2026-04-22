@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { TeamMemberResult, TeamSnapshot } from "@/lib/gravelinas/teamTypes";
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useInicioFace } from "@/contexts/InicioFaceContext";
@@ -371,6 +372,15 @@ export function HomeView({ data }: { data: TeamSnapshot }) {
                   Madrid in Game (presencial)
                 </a>
                 .
+              </p>
+
+              <p className="mx-auto mt-8 max-w-2xl">
+                <Link
+                  href="/opgg"
+                  className="inline-flex items-center justify-center rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20 sm:text-base"
+                >
+                  Vista lineup op.gg (partidas 1 y 2)
+                </Link>
               </p>
 
               {globalErr && (
