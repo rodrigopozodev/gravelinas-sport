@@ -37,6 +37,9 @@ yarn-error.log*
 # SQLite local DB
 /data/
 
+# pnpm local (proyecto usa npm/package-lock.json como canónico)
+pnpm-lock.yaml
+
 # vercel
 .vercel
 

@@ -14,13 +14,14 @@ export function getDDragonVersion(): string {
 const CDN_BASE = "https://ddragon.leagueoflegends.com/cdn";
 
 /**
- * Rango en Data Dragon: `GET /cdn/{v}/img/tier/{TIER}.png` → **403** (Riot no expone esos PNG en CDN; probado 16.8.1).
- * Community Dragon (mismo origen que assets del cliente):
- * - `emblem-{tier}.png` → ~2560×1440 (banner ancho) → en UI estrecha `object-contain` deja el escudo **enano**.
- * - `wings/wings_{tier}_plate.png` → ~208×270, proporción usable para tarjetas.
+ * Data Dragon `GET /cdn/{v}/img/tier/{TIER}.png` → **403** (Riot no publica esos PNG en el CDN).
+ * Roster / tarjetas: placas aladas (proporción acorde al marco de perfil en home).
  */
 const COMMUNITY_DRAGON_RANK_WINGS_PLATE =
   "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/wings";
+/** Página op.gg: emblema ancho `emblem-*.png` (solo ahí, no tocar el roster). */
+const COMMUNITY_DRAGON_RANK_EMBLEM =
+  "https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem";
 
 const TIERS_WITH_EMBLEM = new Set([
   "IRON",
@@ -40,13 +41,20 @@ export function profileIconUrl(profileIconId: number): string {
   return `${CDN_BASE}/${v}/img/profileicon/${profileIconId}.png`;
 }
 
-/** Emblema SoloQ/Flex: placa alada por tier (CD; DD `/img/tier` no sirve). */
+/** Emblema SoloQ/Flex — mismo asset que el roster (placa alada). */
 export function tierEmblemUrl(tier: string | null | undefined): string | null {
   if (!tier || tier === "NONE") return null;
   const t = tier.toUpperCase();
   if (!TIERS_WITH_EMBLEM.has(t)) return null;
-  const file = `wings_${t.toLowerCase()}_plate.png`;
-  return `${COMMUNITY_DRAGON_RANK_WINGS_PLATE}/${file}`;
+  return `${COMMUNITY_DRAGON_RANK_WINGS_PLATE}/wings_${t.toLowerCase()}_plate.png`;
+}
+
+/** Solo vista op.gg: emblema ancho `emblem-{tier}.png` (más legible en columnas). */
+export function tierEmblemUrlOpgg(tier: string | null | undefined): string | null {
+  if (!tier || tier === "NONE") return null;
+  const t = tier.toUpperCase();
+  if (!TIERS_WITH_EMBLEM.has(t)) return null;
+  return `${COMMUNITY_DRAGON_RANK_EMBLEM}/emblem-${t.toLowerCase()}.png`;
 }
 
 // --- Ampliar cuando lo pidas (misma base CDN + versión) ---

@@ -2,9 +2,14 @@ node_modules
 .next
 .git
 .gitignore
+.github
 *.md
 .env*
 !.env.example
 data
 coverage
 .DS_Store
+.cursor
+.vscode
+.idea
+pnpm-lock.yaml

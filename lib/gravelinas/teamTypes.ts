@@ -18,7 +18,7 @@ export type TeamMemberResult = {
   profileIconId: number | null;
   /** URL absoluta CDN Data Dragon (servidor) */
   profileIconUrl: string | null;
-  /** Emblema tier SoloQ (CDN; DD `/img/tier` 403 → URL Community Dragon) */
+  /** Emblema tier SoloQ (CD wings plate; DD `/img/tier` no público) */
   soloTierEmblemUrl: string | null;
   solo: SoloSnapshot | null;
   lastFullSyncAt: number | null;

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInicioFace } from "@/contexts/InicioFaceContext";
 
 import { HomeLenis } from "./HomeLenis";
+import { SiteSidebarNav, SECTION_IDS, type SectionId } from "./SiteSidebarNav";
 import { TeamRefreshButton } from "./TeamRefreshButton";
 
 function formatRank(
@@ -29,131 +30,8 @@ function formatSoloWinRatePct(wins: number, losses: number): string | null {
   return `${((wins / n) * 100).toFixed(1)}%`;
 }
 
-function scrollToSection(id: string) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const win = window as Window & {
-    __lenis?: { scrollTo: (t: HTMLElement, opts?: { programmatic?: boolean; offset?: number }) => void };
-  };
-  const lenis = win.__lenis;
-  // Lenis ya resta scroll-margin / scroll-padding del nodo; offset extra desalinea.
-  if (lenis) lenis.scrollTo(el, { offset: 0, programmatic: true });
-  else el.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-const SECTION_IDS = ["inicio", "roster"] as const;
-type SectionId = (typeof SECTION_IDS)[number];
-
-const SIDEBAR_ROSTER_LINK = { id: "roster" as const, label: "Roster" };
-
 /* Mismo valor que `globals.css` --gr-coin-flip-dur (0.85s). */
 const COIN_FLIP_MS = 850;
-
-function SiteSidebarNav({ activeId }: { activeId: SectionId }) {
-  const { togglePinnedFace, pinnedFace } = useInicioFace();
-  const [inicioCoinSpin, setInicioCoinSpin] = useState(false);
-  const [inicioSpinFromDark, setInicioSpinFromDark] = useState(false);
-  const [inicioAnimKey, setInicioAnimKey] = useState(0);
-  const tInicioSpinEnd = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** Evita doble inicio: dos pointerenter (o dbl) antes de re-render. */
-  const inicioSpinningRef = useRef(false);
-
-  const endInicioSpin = useCallback(() => {
-    inicioSpinningRef.current = false;
-    if (tInicioSpinEnd.current) {
-      clearTimeout(tInicioSpinEnd.current);
-      tInicioSpinEnd.current = null;
-    }
-    setInicioSpinFromDark(false);
-    setInicioCoinSpin(false);
-  }, []);
-
-  const startInicioSpin = useCallback((fromDark: boolean) => {
-    if (inicioSpinningRef.current) return;
-    inicioSpinningRef.current = true;
-    if (tInicioSpinEnd.current) {
-      clearTimeout(tInicioSpinEnd.current);
-      tInicioSpinEnd.current = null;
-    }
-    setInicioSpinFromDark(fromDark);
-    setInicioAnimKey((k) => k + 1);
-    setInicioCoinSpin(true);
-    tInicioSpinEnd.current = setTimeout(() => {
-      tInicioSpinEnd.current = null;
-      endInicioSpin();
-    }, COIN_FLIP_MS);
-  }, [endInicioSpin]);
-
-  useEffect(() => () => endInicioSpin(), [endInicioSpin]);
-
-  return (
-    <aside
-      className={cn(
-        "pointer-events-none fixed left-0 right-0 top-0 z-40 flex flex-row items-start justify-between px-4 pt-4 sm:px-6 lg:px-8",
-        "md:left-8 md:right-auto md:top-1/2 md:bottom-auto md:-translate-y-1/2 md:flex-col md:justify-center md:p-0",
-        "md:w-max"
-      )}
-    >
-      <div
-        className={cn(
-          "pointer-events-auto w-full",
-          "rounded-2xl border border-white/10 bg-[color-mix(in_srgb,var(--bg-elevated)_78%,transparent)] shadow-[0_0_0_1px_rgba(255,255,255,0.02)_inset] backdrop-blur",
-          "md:w-[6.5rem]"
-        )}
-      >
-        <nav
-          aria-label="Secciones"
-          className="flex w-full flex-row items-center justify-between gap-2 p-2 md:flex-col md:items-stretch"
-        >
-          <div className="flex w-full flex-row gap-1.5 md:flex-col">
-            <button
-              type="button"
-              onClick={() => {
-                const fromDark = pinnedFace === "dark";
-                togglePinnedFace();
-                startInicioSpin(fromDark);
-                /* Tras 1 task: el DOM aplica giro; Lenis/scroll no bloquea el 1er frame de la animación. */
-                setTimeout(() => scrollToSection("inicio"), 0);
-              }}
-              className={cn(
-                "gr-nav-link gr-flip-inicio-btn relative z-10 flex w-full min-w-0 max-w-full flex-col items-center justify-center overflow-visible rounded-xl px-3 py-2 text-center text-sm font-semibold transition-colors",
-                activeId === "inicio"
-                  ? "bg-white/10 text-[var(--text-primary)]"
-                  : "text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]",
-                "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]",
-                inicioCoinSpin && "gr-flip-inicio--spin"
-              )}
-              aria-label="Inicio"
-              aria-pressed={pinnedFace === "dark"}
-              title="Inicio"
-            >
-              <FlippingLogoSidebar
-                isSpinning={inicioCoinSpin}
-                remountKey={inicioAnimKey}
-                spinFromDark={inicioSpinFromDark}
-                onRotationEnd={endInicioSpin}
-              />
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection(SIDEBAR_ROSTER_LINK.id)}
-              className={cn(
-                "gr-nav-link relative rounded-xl px-3 py-2 text-center text-sm font-semibold transition-colors",
-                activeId === SIDEBAR_ROSTER_LINK.id
-                  ? "bg-white/10 text-[var(--text-primary)]"
-                  : "text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]",
-                "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
-              )}
-            >
-              {SIDEBAR_ROSTER_LINK.label}
-            </button>
-          </div>
-        </nav>
-      </div>
-
-    </aside>
-  );
-}
 
 function FlippingLogo() {
   const { togglePinnedFace, pinnedFace } = useInicioFace();
@@ -241,60 +119,7 @@ function FlippingLogo() {
             height={420}
             className="h-auto w-full select-none"
             priority
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FlippingLogoSidebar({
-  isSpinning,
-  remountKey,
-  spinFromDark,
-  onRotationEnd,
-}: {
-  isSpinning: boolean;
-  remountKey: number;
-  spinFromDark: boolean;
-  onRotationEnd: () => void;
-}) {
-  const { pinnedFace } = useInicioFace();
-
-  return (
-    <div className="gr-flip-wrap--sidebar w-full min-w-0">
-      <div
-        key={remountKey}
-        className={cn(
-          "gr-flip-inner gr-coin-anim--sidebar",
-          isSpinning && spinFromDark && "gr-coin-anim--spin-from-dark",
-          !isSpinning && pinnedFace === "dark" && "gr-flip-inner--face-dark"
-        )}
-        onAnimationEnd={(e) => {
-          if (e.target !== e.currentTarget) return;
-          onRotationEnd();
-        }}
-      >
-        <div className="gr-flip-face">
-          <Image
-            src="/brand/gravelinas-logo.png"
-            alt=""
-            width={88}
-            height={88}
-            className="h-auto w-full max-w-full select-none"
-            sizes="5rem"
-            quality={80}
-          />
-        </div>
-        <div className="gr-flip-face gr-flip-back">
-          <Image
-            src="/brand/gravelinas-logo-tema-oscuro.png"
-            alt=""
-            width={88}
-            height={88}
-            className="h-auto w-full max-w-full select-none"
-            sizes="5rem"
-            quality={80}
+            loading="eager"
           />
         </div>
       </div>

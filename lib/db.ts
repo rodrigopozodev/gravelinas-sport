@@ -49,11 +49,37 @@ function migrate(db: Database.Database) {
       last_full_sync_at INTEGER,
       last_rank_sync_at INTEGER
     );
+
+    CREATE TABLE IF NOT EXISTS opgg_riot_cache (
+      riot_id TEXT PRIMARY KEY,
+      pos TEXT NOT NULL,
+      display TEXT NOT NULL,
+      rank_text TEXT,
+      tier_emblem_url TEXT,
+      rank_error TEXT,
+      champions_json TEXT NOT NULL,
+      champions_error TEXT,
+      fetched_at INTEGER NOT NULL,
+      solo_wins INTEGER,
+      solo_losses INTEGER
+    );
   `);
+  ensureOpggSoloWlColumns(db);
+}
+
+function ensureOpggSoloWlColumns(db: Database.Database) {
+  const cols = db.prepare("PRAGMA table_info(opgg_riot_cache)").all() as { name: string }[];
+  const names = new Set(cols.map((c) => c.name));
+  if (!names.has("solo_wins")) db.exec("ALTER TABLE opgg_riot_cache ADD COLUMN solo_wins INTEGER");
+  if (!names.has("solo_losses")) db.exec("ALTER TABLE opgg_riot_cache ADD COLUMN solo_losses INTEGER");
 }
 
 export function getDb(): Database.Database {
-  if (globalForDb.gravelinasDb) return globalForDb.gravelinasDb;
+  if (globalForDb.gravelinasDb) {
+    // Conexión cacheada en dev HMR: re-ejecutar `migrate` (idempotente) para aplicar tablas nuevas sin reiniciar.
+    migrate(globalForDb.gravelinasDb);
+    return globalForDb.gravelinasDb;
+  }
   const dbPath = defaultDbPath();
   ensureDataDir(dbPath);
   const db = new Database(dbPath);
