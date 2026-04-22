@@ -13,6 +13,8 @@
   --text-muted: #737373;
   --border: #2a2a2a;
   --glow-primary: rgba(0, 212, 255, 0.35);
+  /* Medio giro; alinear con COIN_FLIP_MS (TS). `linear` = giro visible desde el frame 0 (no ease-in lento). */
+  --gr-coin-flip-dur: 0.85s;
 }
 
 @theme inline {
@@ -139,37 +141,72 @@ body {
   perspective: 1200px;
 }
 
-.gr-flip-wrap:hover .gr-coin-anim {
-  animation-play-state: paused;
-}
-
 .gr-flip-inner {
   position: relative;
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   will-change: transform;
 }
 
-.gr-coin-anim {
-  animation: gr-coin-flip 12s linear infinite;
+/* Hero #inicio: misma lógica que Inicio (sidebar) + InicioFaceContext. */
+.gr-coin-anim--hero {
+  animation: none;
+  transform: rotateY(0deg);
+}
+.gr-flip-wrap.gr-flip-hero--interactive .gr-coin-anim--hero.gr-flip-inner--face-dark {
+  transform: rotateY(180deg);
+}
+.gr-flip-hero--interactive.gr-flip-hero--coin-spin .gr-coin-anim--hero:not(.gr-coin-anim--spin-from-dark) {
+  animation: gr-coin-flip var(--gr-coin-flip-dur) linear 1 both;
+}
+.gr-flip-hero--interactive.gr-flip-hero--coin-spin .gr-coin-anim--hero.gr-coin-anim--spin-from-dark {
+  animation: gr-coin-flip-from-dark var(--gr-coin-flip-dur) linear 1 both;
+}
+
+.gr-flip-wrap--sidebar {
+  width: 100%;
+  max-width: 4.3rem;
+  margin-inline: auto;
+  aspect-ratio: 1 / 1;
+  perspective: 800px;
+}
+
+.gr-coin-anim--sidebar {
+  animation: none;
+  transform: rotateY(0deg);
+}
+
+/* Reposo: cara fijada con clic (Context), sin animación. */
+.gr-flip-wrap--sidebar .gr-coin-anim--sidebar.gr-flip-inner--face-dark {
+  transform: rotateY(180deg);
+}
+
+/* Inicio (sidebar): 0%→100% = medio giro; sin tramo fijo al inicio (el antiguo 0–25% era “tarda en empezar”). */
+.gr-flip-inicio-btn.gr-flip-inicio--spin .gr-coin-anim--sidebar:not(.gr-coin-anim--spin-from-dark) {
+  animation: gr-coin-flip var(--gr-coin-flip-dur) linear 1 both;
+}
+
+.gr-flip-inicio-btn.gr-flip-inicio--spin .gr-coin-anim--sidebar.gr-coin-anim--spin-from-dark {
+  animation: gr-coin-flip-from-dark var(--gr-coin-flip-dur) linear 1 both;
+}
+
+@keyframes gr-coin-flip-from-dark {
+  0% {
+    transform: rotateY(180deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
 }
 
 @keyframes gr-coin-flip {
   0% {
     transform: rotateY(0deg);
   }
-  44% {
-    transform: rotateY(0deg);
-  }
-  50% {
-    transform: rotateY(180deg);
-  }
-  94% {
-    transform: rotateY(180deg);
-  }
   100% {
-    transform: rotateY(360deg);
+    transform: rotateY(180deg);
   }
 }
 
@@ -180,15 +217,28 @@ body {
   align-items: center;
   justify-content: center;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   transform: translateZ(1px);
 }
 
 .gr-flip-face * {
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .gr-flip-back {
   transform: rotateY(180deg);
+}
+
+/* Solo en hero: el motivo del tema oscuro ocupa menos área → scale. No sidebar (ahí confunde el flip). */
+.gr-flip-wrap:not(.gr-flip-wrap--sidebar) .gr-flip-back img {
+  transform: scale(1.22);
+  transform-origin: center center;
+}
+
+.gr-flip-wrap--sidebar .gr-flip-back img {
+  transform: scale(1.12);
+  transform-origin: center center;
 }
 
 .gr-nav-link::after {
@@ -208,6 +258,13 @@ body {
 
 .gr-nav-link:hover::after {
   transform: scaleX(1);
+}
+
+/* Logo Inicio: mismo bloque de nav sin subrayado ::after. */
+.gr-nav-link.gr-flip-inicio-btn::after,
+.gr-nav-link.gr-flip-inicio-btn:hover::after {
+  content: none;
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

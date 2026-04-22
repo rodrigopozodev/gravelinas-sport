@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
+import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,11 +15,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Gravelinas",
+  title: "Gravelinas Esports",
   description: "Equipo LoL — datos Riot con caché SQLite",
   icons: {
-    icon: [{ url: "/icon.png" }],
-    apple: [{ url: "/icon.png" }],
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", type: "image/png" }],
   },
 };
 
@@ -32,7 +38,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

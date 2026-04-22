@@ -82,6 +82,10 @@ export function readTeamConfig(): TeamMemberInput[] {
 export function syncTeamMembersToDb(members: TeamMemberInput[]) {
   const persisted = members.filter((m) => !m.pending);
   const db = getDb();
+  const getExisting = db.prepare(
+    `SELECT slot, game_name, tag_line, platform FROM team_member WHERE slot = ?`
+  );
+  const deletePlayerRiot = db.prepare(`DELETE FROM player_riot WHERE slot = ?`);
   const stmt = db.prepare(`
     INSERT INTO team_member (slot, game_name, tag_line, platform, label)
     VALUES (@slot, @game_name, @tag_line, @platform, @label)
@@ -93,6 +97,16 @@ export function syncTeamMembersToDb(members: TeamMemberInput[]) {
   `);
   const tx = db.transaction(() => {
     for (const m of persisted) {
+      const prev = getExisting.get(m.slot) as
+        | { slot: number; game_name: string; tag_line: string; platform: string }
+        | undefined;
+      if (
+        prev &&
+        (prev.game_name !== m.gameName || prev.tag_line !== m.tagLine || prev.platform !== m.platform)
+      ) {
+        // Cambió RiotID/plataforma para el mismo slot → invalida cache local (puuid/rango).
+        deletePlayerRiot.run(m.slot);
+      }
       stmt.run({
         slot: m.slot,
         game_name: m.gameName,

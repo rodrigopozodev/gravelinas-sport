@@ -3,7 +3,9 @@
 import { cn } from "@/lib/utils";
 import type { TeamMemberResult, TeamSnapshot } from "@/lib/gravelinas/teamTypes";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { useInicioFace } from "@/contexts/InicioFaceContext";
 
 import { HomeLenis } from "./HomeLenis";
 import { TeamRefreshButton } from "./TeamRefreshButton";
@@ -39,14 +41,51 @@ function scrollToSection(id: string) {
   else el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-const SIDEBAR_LINKS = [
-  { id: "inicio", label: "Inicio" },
-  { id: "roster", label: "Roster" },
-] as const;
+const SECTION_IDS = ["inicio", "roster"] as const;
+type SectionId = (typeof SECTION_IDS)[number];
 
-type SectionId = (typeof SIDEBAR_LINKS)[number]["id"];
+const SIDEBAR_ROSTER_LINK = { id: "roster" as const, label: "Roster" };
+
+/* Mismo valor que `globals.css` --gr-coin-flip-dur (0.85s). */
+const COIN_FLIP_MS = 850;
 
 function SiteSidebarNav({ activeId }: { activeId: SectionId }) {
+  const { togglePinnedFace, pinnedFace } = useInicioFace();
+  const [inicioCoinSpin, setInicioCoinSpin] = useState(false);
+  const [inicioSpinFromDark, setInicioSpinFromDark] = useState(false);
+  const [inicioAnimKey, setInicioAnimKey] = useState(0);
+  const tInicioSpinEnd = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Evita doble inicio: dos pointerenter (o dbl) antes de re-render. */
+  const inicioSpinningRef = useRef(false);
+
+  const endInicioSpin = useCallback(() => {
+    inicioSpinningRef.current = false;
+    if (tInicioSpinEnd.current) {
+      clearTimeout(tInicioSpinEnd.current);
+      tInicioSpinEnd.current = null;
+    }
+    setInicioSpinFromDark(false);
+    setInicioCoinSpin(false);
+  }, []);
+
+  const startInicioSpin = useCallback((fromDark: boolean) => {
+    if (inicioSpinningRef.current) return;
+    inicioSpinningRef.current = true;
+    if (tInicioSpinEnd.current) {
+      clearTimeout(tInicioSpinEnd.current);
+      tInicioSpinEnd.current = null;
+    }
+    setInicioSpinFromDark(fromDark);
+    setInicioAnimKey((k) => k + 1);
+    setInicioCoinSpin(true);
+    tInicioSpinEnd.current = setTimeout(() => {
+      tInicioSpinEnd.current = null;
+      endInicioSpin();
+    }, COIN_FLIP_MS);
+  }, [endInicioSpin]);
+
+  useEffect(() => () => endInicioSpin(), [endInicioSpin]);
+
   return (
     <aside
       className={cn(
@@ -67,35 +106,123 @@ function SiteSidebarNav({ activeId }: { activeId: SectionId }) {
           className="flex w-full flex-row items-center justify-between gap-2 p-2 md:flex-col md:items-stretch"
         >
           <div className="flex w-full flex-row gap-1.5 md:flex-col">
-            {SIDEBAR_LINKS.map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => scrollToSection(id)}
-                className={cn(
-                  "gr-nav-link relative rounded-xl px-3 py-2 text-center text-sm font-semibold transition-colors",
-                  id === activeId
-                    ? "bg-white/10 text-[var(--text-primary)]"
-                    : "text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]",
-                  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
-                )}
-              >
-                {label}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => {
+                const fromDark = pinnedFace === "dark";
+                togglePinnedFace();
+                startInicioSpin(fromDark);
+                /* Tras 1 task: el DOM aplica giro; Lenis/scroll no bloquea el 1er frame de la animación. */
+                setTimeout(() => scrollToSection("inicio"), 0);
+              }}
+              className={cn(
+                "gr-nav-link gr-flip-inicio-btn relative z-10 flex w-full min-w-0 max-w-full flex-col items-center justify-center overflow-visible rounded-xl px-3 py-2 text-center text-sm font-semibold transition-colors",
+                activeId === "inicio"
+                  ? "bg-white/10 text-[var(--text-primary)]"
+                  : "text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]",
+                "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]",
+                inicioCoinSpin && "gr-flip-inicio--spin"
+              )}
+              aria-label="Inicio"
+              aria-pressed={pinnedFace === "dark"}
+              title="Inicio"
+            >
+              <FlippingLogoSidebar
+                isSpinning={inicioCoinSpin}
+                remountKey={inicioAnimKey}
+                spinFromDark={inicioSpinFromDark}
+                onRotationEnd={endInicioSpin}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection(SIDEBAR_ROSTER_LINK.id)}
+              className={cn(
+                "gr-nav-link relative rounded-xl px-3 py-2 text-center text-sm font-semibold transition-colors",
+                activeId === SIDEBAR_ROSTER_LINK.id
+                  ? "bg-white/10 text-[var(--text-primary)]"
+                  : "text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]",
+                "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]"
+              )}
+            >
+              {SIDEBAR_ROSTER_LINK.label}
+            </button>
           </div>
-
-          {/* Sync button se muestra en roster bajo ADC */}
         </nav>
       </div>
+
     </aside>
   );
 }
 
 function FlippingLogo() {
+  const { togglePinnedFace, pinnedFace } = useInicioFace();
+  const [heroCoinSpin, setHeroCoinSpin] = useState(false);
+  const [heroSpinFromDark, setHeroSpinFromDark] = useState(false);
+  const [heroCoinKey, setHeroCoinKey] = useState(0);
+  const tHeroEnd = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heroCoinLockRef = useRef(false);
+
+  const endHeroCoinSpin = useCallback(() => {
+    heroCoinLockRef.current = false;
+    if (tHeroEnd.current) {
+      clearTimeout(tHeroEnd.current);
+      tHeroEnd.current = null;
+    }
+    setHeroSpinFromDark(false);
+    setHeroCoinSpin(false);
+  }, []);
+
+  const onHeroCoinClick = useCallback(() => {
+    if (heroCoinLockRef.current) return;
+    const fromDark = pinnedFace === "dark";
+    togglePinnedFace();
+    heroCoinLockRef.current = true;
+    if (tHeroEnd.current) {
+      clearTimeout(tHeroEnd.current);
+      tHeroEnd.current = null;
+    }
+    setHeroSpinFromDark(fromDark);
+    setHeroCoinKey((k) => k + 1);
+    setHeroCoinSpin(true);
+    tHeroEnd.current = setTimeout(() => {
+      tHeroEnd.current = null;
+      endHeroCoinSpin();
+    }, COIN_FLIP_MS);
+  }, [endHeroCoinSpin, pinnedFace, togglePinnedFace]);
+
+  useEffect(() => () => endHeroCoinSpin(), [endHeroCoinSpin]);
+
   return (
-    <div className="gr-flip-wrap mx-auto">
-      <div className={cn("gr-flip-inner gr-coin-anim")}>
+    <div
+      className={cn(
+        "gr-flip-wrap gr-flip-hero--interactive mx-auto max-w-full cursor-pointer",
+        heroCoinSpin && "gr-flip-hero--coin-spin"
+      )}
+      onClick={onHeroCoinClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onHeroCoinClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-pressed={pinnedFace === "dark"}
+      aria-label="Alternar logo: tema claro u oscuro"
+    >
+      <div
+        key={heroCoinKey}
+        className={cn(
+          "gr-flip-inner gr-coin-anim--hero",
+          heroCoinSpin && heroSpinFromDark && "gr-coin-anim--spin-from-dark",
+          !heroCoinSpin && pinnedFace === "dark" && "gr-flip-inner--face-dark"
+        )}
+        onAnimationEnd={(e) => {
+          if (e.target !== e.currentTarget) return;
+          endHeroCoinSpin();
+        }}
+      >
         <div className="gr-flip-face">
           <Image
             src="/brand/gravelinas-logo.png"
@@ -121,6 +248,60 @@ function FlippingLogo() {
   );
 }
 
+function FlippingLogoSidebar({
+  isSpinning,
+  remountKey,
+  spinFromDark,
+  onRotationEnd,
+}: {
+  isSpinning: boolean;
+  remountKey: number;
+  spinFromDark: boolean;
+  onRotationEnd: () => void;
+}) {
+  const { pinnedFace } = useInicioFace();
+
+  return (
+    <div className="gr-flip-wrap--sidebar w-full min-w-0">
+      <div
+        key={remountKey}
+        className={cn(
+          "gr-flip-inner gr-coin-anim--sidebar",
+          isSpinning && spinFromDark && "gr-coin-anim--spin-from-dark",
+          !isSpinning && pinnedFace === "dark" && "gr-flip-inner--face-dark"
+        )}
+        onAnimationEnd={(e) => {
+          if (e.target !== e.currentTarget) return;
+          onRotationEnd();
+        }}
+      >
+        <div className="gr-flip-face">
+          <Image
+            src="/brand/gravelinas-logo.png"
+            alt=""
+            width={88}
+            height={88}
+            className="h-auto w-full max-w-full select-none"
+            sizes="5rem"
+            quality={80}
+          />
+        </div>
+        <div className="gr-flip-face gr-flip-back">
+          <Image
+            src="/brand/gravelinas-logo-tema-oscuro.png"
+            alt=""
+            width={88}
+            height={88}
+            className="h-auto w-full max-w-full select-none"
+            sizes="5rem"
+            quality={80}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RosterCard({ m }: { m: TeamMemberResult }) {
   if (m.pending) {
     return (
@@ -130,6 +311,9 @@ function RosterCard({ m }: { m: TeamMemberResult }) {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-primary)]">
           {m.label ?? `Slot ${m.slot}`}
         </p>
+        {m.label === "ADC" ? (
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">Tryouts</p>
+        ) : null}
         <p className="text-sm text-[var(--text-muted)]">Próximamente</p>
       </article>
     );
@@ -177,6 +361,9 @@ function RosterCard({ m }: { m: TeamMemberResult }) {
           <p className="text-[14px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-primary)]">
             {m.label ?? `Slot ${m.slot}`}
           </p>
+          {m.label === "ADC" ? (
+            <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)]">Tryouts</p>
+          ) : null}
           <p
             className={cn(
               "font-mono text-[14px] text-[var(--text-secondary)]",
@@ -284,7 +471,7 @@ export function HomeView({ data }: { data: TeamSnapshot }) {
   const authErr = !ok && "errorCode" in data && data.errorCode === "RIOT_AUTH_FAILED";
   const [activeId, setActiveId] = useState<SectionId>("inicio");
 
-  const sectionIds = useMemo(() => SIDEBAR_LINKS.map((l) => l.id), []);
+  const sectionIds = useMemo(() => [...SECTION_IDS] as SectionId[], []);
 
   useEffect(() => {
     const els = sectionIds
@@ -379,8 +566,15 @@ export function HomeView({ data }: { data: TeamSnapshot }) {
 
           <section
             id="roster"
-            className="flex min-h-svh flex-col justify-center overflow-x-hidden scroll-mt-0 px-4 py-10 sm:px-6 lg:px-8"
+            className="relative flex min-h-svh flex-col justify-center overflow-x-hidden scroll-mt-0 px-4 py-10 sm:px-6 lg:px-8"
           >
+            {/* Botón fijo dentro del roster: izquierda + centrado en altura */}
+            <div className="pointer-events-none absolute left-[10%] top-1/2 -translate-y-1/2">
+              <div className="pointer-events-auto w-[15.5rem] max-w-[70vw]">
+                <TeamRefreshButton />
+              </div>
+            </div>
+
             <div className="mx-auto max-w-6xl min-w-0">
               <div className="grid min-w-0 grid-cols-1 items-stretch gap-20 overflow-visible md:grid-cols-6">
                 {members.map((m) => (
@@ -393,11 +587,6 @@ export function HomeView({ data }: { data: TeamSnapshot }) {
                     )}
                   >
                     <RosterCard m={m} />
-                    {m.pending && (m.label ?? "").toLowerCase() === "adc" ? (
-                      <div className="mt-4 flex justify-center">
-                        <TeamRefreshButton />
-                      </div>
-                    ) : null}
                   </div>
                 ))}
               </div>

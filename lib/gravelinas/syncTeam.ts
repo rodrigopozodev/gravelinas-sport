@@ -21,11 +21,19 @@ import type { TeamMemberResult, TeamSnapshot } from "@/lib/gravelinas/teamTypes"
 export type { TeamMemberResult } from "@/lib/gravelinas/teamTypes";
 
 const FULL_SYNC_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
+// La liga/LP cambia a menudo → refresco corto para mantener Top/Support “al día”.
+const RANK_SYNC_INTERVAL_MS = 12 * 60 * 1000;
 
 function needsFullSync(row: PlayerRiotRow | null): boolean {
   if (!row?.puuid) return true;
   if (row.last_full_sync_at == null) return true;
   return Date.now() - row.last_full_sync_at > FULL_SYNC_INTERVAL_MS;
+}
+
+function needsRankSync(row: PlayerRiotRow | null): boolean {
+  if (!row?.puuid) return true;
+  if (row.last_rank_sync_at == null) return true;
+  return Date.now() - row.last_rank_sync_at > RANK_SYNC_INTERVAL_MS;
 }
 
 function soloFromDb(row: PlayerRiotRow | null): TeamMemberResult["solo"] {
@@ -240,6 +248,31 @@ export async function getTeamSnapshot(options: TeamSnapshotOptions): Promise<Tea
       if (fr === "not_found") {
         members.push(rowToMember(m, getPlayerRiot(m.slot), "Cuenta no encontrada"));
         continue;
+      }
+    } else if (needsRankSync(row)) {
+      const rr = await rankOnlyMember(m, row as PlayerRiotRow);
+      if (rr === "auth") {
+        return {
+          ok: false,
+          error: RIOT_AUTH_MESSAGE,
+          errorCode: RIOT_AUTH_ERROR_CODE,
+          members: [],
+        };
+      }
+      if (rr === "need_full") {
+        const fr = await fullSyncMember(m);
+        if (fr === "auth") {
+          return {
+            ok: false,
+            error: RIOT_AUTH_MESSAGE,
+            errorCode: RIOT_AUTH_ERROR_CODE,
+            members: [],
+          };
+        }
+        if (fr === "not_found") {
+          members.push(rowToMember(m, getPlayerRiot(m.slot), "Cuenta no encontrada"));
+          continue;
+        }
       }
     }
     row = getPlayerRiot(m.slot);

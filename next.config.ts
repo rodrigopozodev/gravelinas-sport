@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["better-sqlite3"],
   images: {
+    qualities: [75, 80],
     remotePatterns: [
       {
         protocol: "https",
